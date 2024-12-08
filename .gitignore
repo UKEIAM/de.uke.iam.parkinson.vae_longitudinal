@@ -398,3 +398,5 @@ $RECYCLE.BIN/
 *.csv
 *.txt
 *.tsv
+*.tar
+*.jpg
