@@ -93,12 +93,13 @@ class VariationalAutoencoderOutput:
         )
         real_sum = batch.sum(axis=-1)
         reconstructed_sum = self.x_recon.sum(axis=-1)
-        logger.log(
-            f"{prefix}_concordance",
-            concordance_corrcoef(
-                target=real_sum.to(torch.float), preds=reconstructed_sum.to(torch.float)
-            ),
+
+        concordance = concordance_corrcoef(
+            target=real_sum.to(torch.float), preds=reconstructed_sum.to(torch.float)
         )
+        if torch.isnan(concordance):
+            concordance = torch.tensor(0.0)
+        logger.log(f"{prefix}_concordance", concordance)
 
     def calculate_total_error(self, batch):
         real_sum = batch.sum(axis=-1)

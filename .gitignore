@@ -401,3 +401,4 @@ $RECYCLE.BIN/
 *.tar
 *.jpg
 logs
+checkpoints
