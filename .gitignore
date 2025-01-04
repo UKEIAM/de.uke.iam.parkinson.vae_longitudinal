@@ -402,3 +402,4 @@ $RECYCLE.BIN/
 *.jpg
 logs
 checkpoints
+checkpoints_val_loss

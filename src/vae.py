@@ -320,8 +320,8 @@ class VariationAutoencoderModule(L.LightningModule):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
         scheduler = {
             "scheduler": ReduceLROnPlateau(
-                optimizer, mode="max", patience=self.patience, min_lr=1e-6
+                optimizer, mode="min", patience=self.patience, min_lr=1e-6
             ),
-            "monitor": "val_concordance",
+            "monitor": "val_loss",
         }
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
