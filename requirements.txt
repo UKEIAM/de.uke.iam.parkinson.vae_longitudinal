@@ -1,0 +1,12 @@
+lightning
+pandas
+#te2rules
+optuna
+seaborn
+# gpytorch
+ipykernel
+#multiviewae
+coral-pytorch
+torchmetrics
+optuna-integration[pytorch_lightning]
+umap-learn
