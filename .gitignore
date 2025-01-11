@@ -403,3 +403,4 @@ $RECYCLE.BIN/
 logs
 checkpoints
 checkpoints_val_loss
+*.pickle
