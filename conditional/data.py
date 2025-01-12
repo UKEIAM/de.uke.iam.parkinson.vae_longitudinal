@@ -20,11 +20,18 @@ MAX_SCORES_UPDRS = {
 }
 
 
-def load_amp(path: str):
+def load_amp(
+    path: str, sample_one_measurement_per_subject: bool = False, seed: int = 42
+):
     X_amp = pd.read_csv(path, na_values="Unknown")
 
     # Filter out multiple measurements
-    # X_amp = X_amp[X_amp["Visit ID"] == "M0"].reset_index()
+    if sample_one_measurement_per_subject:
+        X_amp = (
+            X_amp.groupby("Participant")
+            .apply(lambda group: group.sample(n=1, random_state=seed))
+            .reset_index(drop=True)
+        )
 
     X_amp.columns = X_amp.columns.str.replace("ADL", "Daily living", regex=False)
     X_amp.columns = X_amp.columns.str.replace("Stigma", "Stigmatization", regex=False)
@@ -86,6 +93,7 @@ def load_amp(path: str):
         }
     )
 
+    X_amp[GENERATIVE_COLUMNS] = X_amp[GENERATIVE_COLUMNS].astype(float)
     return X_amp, scores
 
 
