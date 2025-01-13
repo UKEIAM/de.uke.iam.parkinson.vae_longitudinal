@@ -77,18 +77,20 @@ def load_amp(
 
     scores = pd.DataFrame(
         {
-            "Time since diagnosis": ((X_amp["Age"] - X_amp["Age (Diagnosis)"]) / 20) * 2
-            - 1,
-            "Age": X_amp["Age"] / 100 * 2 - 1,
-            "Sex": X_amp["Sex"].map({"Female": -1.0, "Male": 1.0}),
-            "Medication": X_amp["Medication"].map({True: 1.0, False: -1.0}),
-            "Surgery": X_amp["Surgery"].map({True: 1.0, False: -1.0}),
-            "Education": X_amp["Education"].map(
-                {
-                    "Less than 12 years": -1.0,
-                    "12-16 years": 0.0,
-                    "Greater than 16 years": 1.0,
-                }
+            "Time since diagnosis": X_amp["Age"] - X_amp["Age (Diagnosis)"],
+            "Age": X_amp["Age"],
+            "Sex": X_amp["Sex"].astype(
+                pd.CategoricalDtype(categories=["Male", "Female"])
+            ),
+            "Medication": X_amp["Medication"].map({True: 1.0, False: 0.0}),
+            "Surgery": X_amp["Surgery"].map({True: 1.0, False: 0.0}),
+            "Education": pd.Categorical(
+                X_amp["Education"],
+                categories=[
+                    "Less than 12 years",
+                    "12-16 years",
+                    "Greater than 16 years",
+                ],
             ),
         }
     )
@@ -116,11 +118,11 @@ def load_uke(path: str):
         if pd.isna(age):
             return pd.NA
         elif age < 12:
-            return -1.0
+            return "Less than 12 years"
         elif age > 16:
-            return 1.0
+            return "Greater than 16 years"
         else:
-            return 0.0
+            return "12-16 years"
 
     def normalize_scores(scores):
         for key, value in MAX_SCORES_UPDRS.items():
@@ -153,19 +155,31 @@ def load_uke(path: str):
 
     uke_scores = pd.DataFrame(scores).reset_index(drop=True)
     uke_covariates = uke_scores[COVARIATES].copy()
-    uke_covariates["Education"] = pd.to_numeric(
-        uke_covariates["Education"].map(education_mapper), errors="coerce"
-    )
-    uke_covariates["Sex"] = uke_covariates["Sex"].map({1.0: -1.0, 0.0: 1.0})
-    uke_covariates["Time since diagnosis"] = (
-        (uke_covariates["Age"] * 100 - uke_covariates["Age (Diagnosis)"]) / 20
-    ) * 2 - 1
-    uke_covariates["Medication"] = uke_covariates["Medication"].map(
-        {"ON": 1.0, "OFF": -1.0}
-    )
-    uke_covariates["Surgery"] = -1.0
-    uke_covariates["Age"] = uke_covariates["Age"] * 2 - 1
 
+    uke_covariates["Age"] *= 100
+    uke_covariates["Time since diagnosis"] = (
+        uke_covariates["Age"] - uke_covariates["Age (Diagnosis)"]
+    )
+    uke_covariates["Education"] = pd.Categorical(
+        uke_covariates["Education"].map(education_mapper),
+        categories=[
+            "Less than 12 years",
+            "12-16 years",
+            "Greater than 16 years",
+        ],
+    )
+
+    uke_covariates["Sex"] = (
+        uke_covariates["Sex"]
+        .map({1.0: "Female", 0.0: "Male"})
+        .astype(pd.CategoricalDtype(categories=["Male", "Female"]))
+    )
+    uke_covariates["Medication"] = uke_covariates["Medication"].map(
+        {"ON": 1.0, "OFF": 0.0}
+    )
+    uke_covariates["Surgery"] = 0.0
+
+    uke_extra = uke_scores[["Time since last test"]]
     uke_scores = uke_scores.drop(
         columns=COVARIATES + ["Time since last test", "Treatment"]
     )
@@ -179,5 +193,6 @@ def load_uke(path: str):
         uke_covariates[
             ["Time since diagnosis", "Age", "Sex", "Medication", "Surgery", "Education"]
         ],
+        uke_extra,
         uke_targets,
     )
