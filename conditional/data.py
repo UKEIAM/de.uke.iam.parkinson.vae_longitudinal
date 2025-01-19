@@ -1,7 +1,7 @@
 import pandas as pd
 
 GENERATIVE_COLUMNS = ["UPDRS I", "UPDRS II", "UPDRS III", "UPDRS IV", "PDQ", "MoCA"]
-MAX_SCORES_UPDS = {
+MAX_SCORES_PDQ = {
     "Mobility": 40,
     "Daily living": 24,
     "Emotion": 24,
@@ -53,7 +53,7 @@ def load_amp(
         if col.startswith("PDQ39"):
             X_amp[col] = X_amp[col].map(value_map).astype(pd.Int64Dtype())
 
-    for key, value in MAX_SCORES_UPDS.items():
+    for key, value in MAX_SCORES_PDQ.items():
         selected_columns = X_amp.filter(like=key)
         assert len(selected_columns.columns) * 4 == value
         X_amp[key] = selected_columns.sum(axis=1, skipna=False)
@@ -65,7 +65,7 @@ def load_amp(
         if col.startswith("UPDRS"):
             X_amp[col] = X_amp[col].astype(pd.Int64Dtype())
 
-    X_amp["PDQ"] = X_amp[list(MAX_SCORES_UPDS.keys())].mean(axis=1)
+    X_amp["PDQ"] = X_amp[list(MAX_SCORES_PDQ.keys())].mean(axis=1)
     X_amp["MoCA"] = X_amp["MoCA"] / 30 * 100
 
     for uprds_subscore, max_value in MAX_SCORES_UPDRS.items():
@@ -142,13 +142,29 @@ def load_uke(path: str):
         if len(baseline) == 0 or len(treated) == 0:
             continue
 
+        # Calculate percent difference between off and on medication
+        off_score = baseline[baseline["Medication"] == "OFF"]
+        on_score = baseline[baseline["Medication"] == "ON"]
+        if len(off_score) > 0 and len(on_score) > 0:
+            on = on_score.iloc[0]["UPDRS III"]
+            off = off_score.iloc[0]["UPDRS III"]
+            change = (off - on) / off
+        else:
+            change = pd.NA
+
         baseline = baseline.iloc[0]
         baseline["Time since last test"] = (
             treated.iloc[0]["Month"] - baseline["Month"]
         ) / 12
         baseline["Treatment"] = 1.0
+        baseline["UPDRS III: Change"] = change
+
         scores.append(
-            baseline[SCORES + COVARIATES + ["Time since last test", "Treatment"]]
+            baseline[
+                SCORES
+                + COVARIATES
+                + ["Time since last test", "Treatment", "UPDRS III: Change"]
+            ]
         )
 
         targets.append(treated.iloc[0][SCORES])
@@ -179,9 +195,9 @@ def load_uke(path: str):
     )
     uke_covariates["Surgery"] = 0.0
 
-    uke_extra = uke_scores[["Time since last test"]]
+    uke_extra = uke_scores[["Time since last test", "UPDRS III: Change"]]
     uke_scores = uke_scores.drop(
-        columns=COVARIATES + ["Time since last test", "Treatment"]
+        columns=COVARIATES + ["Time since last test", "Treatment", "UPDRS III: Change"]
     )
     uke_scores = normalize_scores(uke_scores)
 
