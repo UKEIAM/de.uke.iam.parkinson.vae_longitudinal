@@ -99,8 +99,10 @@ def load_amp(
     return X_amp, scores
 
 
-def load_uke(path: str):
-    SCORES = ["UPDRS I", "UPDRS II", "UPDRS III", "UPDRS IV", "PDQ", "MoCA"]
+def load_uke(
+    path: str,
+    selected_scores=["UPDRS I", "UPDRS II", "UPDRS III", "UPDRS IV", "PDQ", "MoCA"],
+):
     COVARIATES = ["Age (Diagnosis)", "Age", "Sex", "Education", "Medication"]
 
     data = pd.read_csv(
@@ -126,8 +128,15 @@ def load_uke(path: str):
 
     def normalize_scores(scores):
         for key, value in MAX_SCORES_UPDRS.items():
-            scores[key] = scores[key] / value * 100
-        scores["MoCA"] *= 100
+            if key in scores.columns:
+                scores[key] = scores[key] / value * 100
+
+        for key, value in MAX_SCORES_PDQ.items():
+            if key in scores.columns:
+                scores[key] *= 100
+
+        if "MoCA" in scores.columns:
+            scores["MoCA"] *= 100
         return scores
 
     scores = []
@@ -135,17 +144,17 @@ def load_uke(path: str):
     for _, group in data.groupby("Patient"):
         group = group.sort_values("Month").reset_index(drop=True)
 
-        baseline = group[group["Month"] == 0][SCORES + COVARIATES + ["Month"]].dropna(
-            thresh=len(SCORES) - 3
-        )
-        treated = group[group["Month"] > 0][SCORES + ["Month"]].dropna()
+        baseline = group[group["Month"] == 0][
+            selected_scores + COVARIATES + ["Month"]
+        ].dropna(thresh=len(selected_scores) - 3)
+        treated = group[group["Month"] > 0][selected_scores + ["Month"]].dropna()
         if len(baseline) == 0 or len(treated) == 0:
             continue
 
         # Calculate percent difference between off and on medication
         off_score = baseline[baseline["Medication"] == "OFF"]
         on_score = baseline[baseline["Medication"] == "ON"]
-        if len(off_score) > 0 and len(on_score) > 0:
+        if "UPDRS III" in selected_scores and len(off_score) > 0 and len(on_score) > 0:
             on = on_score.iloc[0]["UPDRS III"]
             off = off_score.iloc[0]["UPDRS III"]
             change = (off - on) / off
@@ -161,13 +170,13 @@ def load_uke(path: str):
 
         scores.append(
             baseline[
-                SCORES
+                selected_scores
                 + COVARIATES
                 + ["Time since last test", "Treatment", "UPDRS III: Change"]
             ]
         )
 
-        targets.append(treated.iloc[0][SCORES])
+        targets.append(treated.iloc[0][selected_scores])
 
     uke_scores = pd.DataFrame(scores).reset_index(drop=True)
     uke_covariates = uke_scores[COVARIATES].copy()
