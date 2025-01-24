@@ -1,12 +1,19 @@
-lightning
-pandas
+#lightning
+#pandas
 #te2rules
-optuna
+#optuna
 seaborn
 # gpytorch
 ipykernel
 #multiviewae
-coral-pytorch
-torchmetrics
-optuna-integration[pytorch_lightning]
+#coral-pytorch
+#torchmetrics
+#optuna-integration[pytorch_lightning]
 umap-learn
+treeffuser
+statsmodels
+properscoring
+#abess
+imodels
+#conformal-tights
+mapie
