@@ -196,7 +196,6 @@ class WassersteinLoss(GenerativeLoss):
 class Encoder(nn.Module):
     def __init__(self, layers: Sequence[int], dropout: float = 0.1):
         super().__init__()
-        print("Layers Encoder", layers)
         self.encoder = nn.Sequential()
         for i, (i_size, out_size) in enumerate(zip(layers, layers[1:])):
             if i < len(layers) - 2:
@@ -278,7 +277,7 @@ class VariationalAutoencoder(nn.Module):
             )
 
         loss_recon = self.reconstruction_loss.calculate_reconstruction_loss(
-            y_true=x, y_pred=recon_x
+            y_true=x, y_pred=recon_x, z=z
         )
         loss_generative = self.generative_loss(dist, z)
 
